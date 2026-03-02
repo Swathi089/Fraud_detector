@@ -5,23 +5,45 @@ Report page for the Fraud Detection System.
 Provides report generation and download functionality in multiple formats.
 """
 
+from backend.report_generator import generate_report, get_available_reports
+from ui.styles import inject_design_system
 import datetime
 import streamlit as st
-from backend.report_generator import generate_report, get_available_reports
 import sys
 import os
 
-# Add project root to Python path - MUST be at the top before any imports
+# Add project root to Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
 def report_page():
     """
-    Display the report page for generating and downloading reports.
+    Display the report page with professional UI.
     """
-    st.title("📑 Generate Reports")
-    st.markdown(
-        "Generate professional fraud detection reports in PDF, CSV, or TXT format.")
+    # Inject design system
+    inject_design_system()
+
+    # CSS
+    st.markdown("""
+        <style>
+        .report-header { text-align: center; margin-bottom: 24px; }
+        .report-title { font-size: 24px; font-weight: 700; color: #ffffff; margin-bottom: 8px; }
+        .report-subtitle { color: #94a3b8; font-size: 14px; }
+        .format-card { background: rgba(21, 31, 46, 0.95); border: 1px solid rgba(0, 212, 255, 0.15); border-radius: 16px; padding: 20px; text-align: center; transition: all 0.3s ease; }
+        .format-card:hover { transform: translateY(-3px); border-color: #00d4ff; }
+        .format-icon { font-size: 36px; margin-bottom: 10px; }
+        .format-name { color: #fff; font-weight: 600; font-size: 16px; margin-bottom: 8px; }
+        .format-desc { color: #94a3b8; font-size: 12px; }
+        .report-item { background: rgba(21, 31, 46, 0.95); border: 1px solid rgba(0, 212, 255, 0.15); border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+        </style>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+        <div class="report-header">
+            <h1 style="margin-bottom: 8px;">📑 Generate Reports</h1>
+            <p class="report-subtitle">Generate professional fraud detection reports in PDF, CSV, or TXT format</p>
+        </div>
+    """, unsafe_allow_html=True)
 
     st.markdown("---")
 

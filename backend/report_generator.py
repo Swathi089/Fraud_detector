@@ -29,14 +29,6 @@ os.makedirs(REPORTS_DIR, exist_ok=True)
 def generate_report(stats: dict, output_path: str = None, format: str = "pdf") -> str:
     """
     Generate a fraud detection report.
-
-    Args:
-        stats (dict): Statistics to include in the report
-        output_path (str): Path to save the report
-        format (str): Report format ("pdf", "csv", or "txt")
-
-    Returns:
-        str: Path to the generated report
     """
     logger.info(f"Generating {format.upper()} report")
 
@@ -58,14 +50,7 @@ def generate_report(stats: dict, output_path: str = None, format: str = "pdf") -
 
 def generate_pdf_report(stats: dict, output_path: str) -> str:
     """
-    Generate a professional PDF report.
-
-    Args:
-        stats (dict): Statistics to include in the report
-        output_path (str): Path to save the PDF report
-
-    Returns:
-        str: Path to the generated report
+    Generate a professional PDF report with comprehensive fraud analysis.
     """
     logger.info(f"Generating PDF report: {output_path}")
 
@@ -75,55 +60,52 @@ def generate_pdf_report(stats: dict, output_path: str) -> str:
 
     # Styles
     styles = getSampleStyleSheet()
-    title_style = ParagraphStyle(
-        'CustomTitle',
-        parent=styles['Heading1'],
-        fontSize=24,
-        textColor=colors.HexColor('#1a1a2e'),
-        spaceAfter=30,
-        alignment=1  # Center
-    )
-    heading_style = ParagraphStyle(
-        'CustomHeading',
-        parent=styles['Heading2'],
-        fontSize=14,
-        textColor=colors.HexColor('#16213e'),
-        spaceAfter=12,
-        spaceBefore=20
-    )
+    title_style = ParagraphStyle('CustomTitle', parent=styles['Heading1'], fontSize=24,
+                                 textColor=colors.HexColor('#1a1a2e'), spaceAfter=30, alignment=1)
+    heading_style = ParagraphStyle('CustomHeading', parent=styles['Heading2'], fontSize=14,
+                                   textColor=colors.HexColor('#16213e'), spaceAfter=12, spaceBefore=20)
     normal_style = ParagraphStyle(
-        'CustomNormal',
-        parent=styles['Normal'],
-        fontSize=10,
-        spaceAfter=10
-    )
+        'CustomNormal', parent=styles['Normal'], fontSize=10, spaceAfter=10)
 
     # Title
-    title = Paragraph("Financial Fraud Detection Report", title_style)
-    story.append(title)
-
-    # Report generation date
-    date_text = Paragraph(
-        f"Generated on: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", normal_style)
-    story.append(date_text)
+    story.append(Paragraph("Financial Fraud Detection Report", title_style))
+    story.append(Paragraph(
+        f"Generated on: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", normal_style))
     story.append(Spacer(1, 20))
+
+    # Get fraud_analysis - it contains the main results
+    fraud_analysis = stats.get("fraud_analysis", {})
+
+    # If fraud_analysis is empty, use stats directly
+    if not fraud_analysis:
+        fraud_analysis = stats
+
+    logger.info(
+        f"Fraud analysis keys: {fraud_analysis.keys() if isinstance(fraud_analysis, dict) else 'Not dict'}")
+
+    # Extract values with proper fallbacks
+    total_txn = fraud_analysis.get("total_transactions", 0)
+    fraud_txn = fraud_analysis.get("fraud_transactions", 0)
+    non_fraud_txn = fraud_analysis.get("non_fraud_transactions", 0)
+    fraud_pct = fraud_analysis.get("fraud_percentage", 0)
+    non_fraud_pct = fraud_analysis.get("non_fraud_percentage", 0)
+
+    # If still 0, try from data_summary
+    if total_txn == 0:
+        data_summary = stats.get("data_summary", {})
+        total_txn = data_summary.get("total_rows", 0)
 
     # Executive Summary
     story.append(Paragraph("Executive Summary", heading_style))
 
-    # Get fraud analysis data
-    fraud_analysis = stats.get("fraud_analysis", {})
-    fraud_stats = {
-        "Total Transactions": fraud_analysis.get("total_transactions", 0),
-        "Fraud Transactions": fraud_analysis.get("fraud_transactions", 0),
-        "Non-Fraud Transactions": fraud_analysis.get("non_fraud_transactions", 0),
-        "Fraud Percentage": f"{fraud_analysis.get('fraud_percentage', 0)}%"
-    }
-
-    # Summary table
-    summary_data = [["Metric", "Value"]]
-    for key, value in fraud_stats.items():
-        summary_data.append([key, str(value)])
+    summary_data = [
+        ["Metric", "Value"],
+        ["Total Transactions", f"{total_txn:,}"],
+        ["Fraud Transactions", f"{fraud_txn:,}"],
+        ["Non-Fraud Transactions", f"{non_fraud_txn:,}"],
+        ["Fraud Percentage", f"{fraud_pct}%"],
+        ["Non-Fraud Percentage", f"{non_fraud_pct}%"]
+    ]
 
     summary_table = Table(summary_data, colWidths=[3*inch, 2*inch])
     summary_table.setStyle(TableStyle([
@@ -139,19 +121,23 @@ def generate_pdf_report(stats: dict, output_path: str) -> str:
     story.append(summary_table)
     story.append(Spacer(1, 20))
 
-    # Risk Analysis
-    if "risk_scores" in fraud_analysis:
-        story.append(Paragraph("Risk Analysis", heading_style))
+    # Risk Score Analysis
+    risk_scores = fraud_analysis.get("risk_scores", {})
+    if risk_scores:
+        story.append(Paragraph("Risk Score Analysis", heading_style))
 
-        risk_scores = fraud_analysis["risk_scores"]
-        risk_data = [["Risk Metric", "Value"]]
+        avg_risk = risk_scores.get("average_risk_score", 0)
+        min_risk = risk_scores.get("min_risk_score", 0)
+        max_risk = risk_scores.get("max_risk_score", 0)
+        std_risk = risk_scores.get("std_risk_score", 0)
 
-        risk_data.append(["Average Risk Score", str(
-            risk_scores.get("average_risk_score", 0))])
-        risk_data.append(["Min Risk Score", str(
-            risk_scores.get("min_risk_score", 0))])
-        risk_data.append(["Max Risk Score", str(
-            risk_scores.get("max_risk_score", 0))])
+        risk_data = [
+            ["Metric", "Value"],
+            ["Average Risk Score", f"{avg_risk:.2f}"],
+            ["Minimum Risk Score", f"{min_risk:.2f}"],
+            ["Maximum Risk Score", f"{max_risk:.2f}"],
+            ["Std Deviation", f"{std_risk:.2f}"]
+        ]
 
         risk_table = Table(risk_data, colWidths=[3*inch, 2*inch])
         risk_table.setStyle(TableStyle([
@@ -168,14 +154,16 @@ def generate_pdf_report(stats: dict, output_path: str) -> str:
         story.append(Spacer(1, 20))
 
     # Risk Distribution
-    if "risk_distribution" in fraud_analysis:
+    risk_dist = fraud_analysis.get("risk_distribution", {})
+    if not risk_dist and risk_scores:
+        risk_dist = risk_scores.get("risk_distribution", {})
+
+    if risk_dist:
         story.append(Paragraph("Risk Level Distribution", heading_style))
 
-        risk_dist = fraud_analysis["risk_distribution"]
         dist_data = [["Risk Level", "Count"]]
-
         for level, count in risk_dist.items():
-            dist_data.append([level, str(count)])
+            dist_data.append([level, f"{count:,}"])
 
         dist_table = Table(dist_data, colWidths=[3*inch, 2*inch])
         dist_table.setStyle(TableStyle([
@@ -192,11 +180,11 @@ def generate_pdf_report(stats: dict, output_path: str) -> str:
         story.append(Spacer(1, 20))
 
     # Detailed Statistics
-    if "detailed_statistics" in fraud_analysis:
-        story.append(Paragraph("Detailed Statistics", heading_style))
+    detailed_stats = fraud_analysis.get("detailed_statistics", {})
+    if detailed_stats:
+        story.append(Paragraph("Detailed Transaction Analysis", heading_style))
 
-        detailed_stats = fraud_analysis["detailed_statistics"]
-
+        # Fraud Amount Statistics
         if "fraud_amount" in detailed_stats:
             story.append(Paragraph("Fraud Transaction Amounts:", normal_style))
             fraud_amount = detailed_stats["fraud_amount"]
@@ -204,8 +192,9 @@ def generate_pdf_report(stats: dict, output_path: str) -> str:
                 ["Metric", "Value"],
                 ["Average", f"${fraud_amount.get('average', 0):,.2f}"],
                 ["Total", f"${fraud_amount.get('total', 0):,.2f}"],
-                ["Min", f"${fraud_amount.get('min', 0):,.2f}"],
-                ["Max", f"${fraud_amount.get('max', 0):,.2f}"]
+                ["Minimum", f"${fraud_amount.get('min', 0):,.2f}"],
+                ["Maximum", f"${fraud_amount.get('max', 0):,.2f}"],
+                ["Std Dev", f"${fraud_amount.get('std', 0):,.2f}"]
             ]
 
             amount_table = Table(amount_data, colWidths=[2*inch, 2*inch])
@@ -220,14 +209,161 @@ def generate_pdf_report(stats: dict, output_path: str) -> str:
                 ('GRID', (0, 0), (-1, -1), 1, colors.black)
             ]))
             story.append(amount_table)
+            story.append(Spacer(1, 10))
+
+        # Non-Fraud Amount Statistics
+        if "non_fraud_amount" in detailed_stats:
+            story.append(
+                Paragraph("Non-Fraud Transaction Amounts:", normal_style))
+            non_fraud_amount = detailed_stats["non_fraud_amount"]
+            amount_data2 = [
+                ["Metric", "Value"],
+                ["Average", f"${non_fraud_amount.get('average', 0):,.2f}"],
+                ["Total", f"${non_fraud_amount.get('total', 0):,.2f}"],
+                ["Minimum", f"${non_fraud_amount.get('min', 0):,.2f}"],
+                ["Maximum", f"${non_fraud_amount.get('max', 0):,.2f}"],
+                ["Std Dev", f"${non_fraud_amount.get('std', 0):,.2f}"]
+            ]
+
+            amount_table2 = Table(amount_data2, colWidths=[2*inch, 2*inch])
+            amount_table2.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#10b981')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 10),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+                ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+                ('GRID', (0, 0), (-1, -1), 1, colors.black)
+            ]))
+            story.append(amount_table2)
+            story.append(Spacer(1, 10))
+
+        # Time-based Statistics
+        if "fraud_time" in detailed_stats:
+            story.append(
+                Paragraph("Fraud Transaction Time Patterns:", normal_style))
+            fraud_time = detailed_stats["fraud_time"]
+            time_data = [
+                ["Metric", "Value (seconds)"],
+                ["Average Time", f"{fraud_time.get('average', 0):,.2f}"],
+                ["First Transaction", f"{fraud_time.get('min', 0):,.2f}"],
+                ["Last Transaction", f"{fraud_time.get('max', 0):,.2f}"]
+            ]
+
+            time_table = Table(time_data, colWidths=[2*inch, 2*inch])
+            time_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#f59e0b')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 10),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+                ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+                ('GRID', (0, 0), (-1, -1), 1, colors.black)
+            ]))
+            story.append(time_table)
+            story.append(Spacer(1, 10))
+
+    # Dataset Overview Section
+    data_summary = stats.get("data_summary", {})
+    if data_summary:
+        story.append(Paragraph("Dataset Overview", heading_style))
+
+        total_cols = data_summary.get("total_columns", 0)
+        num_cols = data_summary.get("numerical_columns", [])
+        num_cols_count = len(num_cols) if isinstance(num_cols, list) else 0
+
+        dataset_data = [
+            ["Metric", "Value"],
+            ["Total Rows", f"{data_summary.get('total_rows', 'N/A'):,}"],
+            ["Total Columns", str(total_cols)],
+            ["Numerical Columns", str(num_cols_count)]
+        ]
+
+        dataset_table = Table(dataset_data, colWidths=[3*inch, 2*inch])
+        dataset_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0f3460')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 12),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black)
+        ]))
+        story.append(dataset_table)
+        story.append(Spacer(1, 20))
+
+    # Top Risky Transactions
+    top_risky = fraud_analysis.get("top_risky_transactions", [])
+    if top_risky and len(top_risky) > 0:
+        story.append(Paragraph("Top Risky Transactions", heading_style))
+
+        risky_data = [["#", "Risk Score", "Class"]]
+
+        for i, txn in enumerate(top_risky[:5]):
+            risk = txn.get("risk_score", "N/A")
+            txn_class = txn.get("Class", "N/A")
+            risky_data.append([str(i+1), str(risk), str(txn_class)])
+
+        if len(risky_data) > 1:
+            risky_table = Table(risky_data, colWidths=[
+                                0.5*inch, 2*inch, 2*inch])
+            risky_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#dc2626')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 10),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+                ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+                ('GRID', (0, 0), (-1, -1), 1, colors.black)
+            ]))
+            story.append(risky_table)
+            story.append(Spacer(1, 20))
+
+    # Recommendations Section
+    story.append(Paragraph("Recommendations", heading_style))
+
+    if fraud_pct > 1:
+        recommendation_text = """
+        Based on the analysis, the fraud rate is above 1%. Immediate action is recommended:
+        <ul>
+        <li>Implement stricter verification for high-value transactions</li>
+        <li>Enable real-time fraud alerting system</li>
+        <li>Review and update fraud detection rules</li>
+        <li>Consider machine learning model retraining with recent data</li>
+        <li>Increase monitoring frequency for suspicious accounts</li>
+        </ul>
+        """
+    elif fraud_pct > 0.1:
+        recommendation_text = """
+        The fraud rate is moderate (0.1% - 1%). Recommended actions:
+        <ul>
+        <li>Continue monitoring transaction patterns</li>
+        <li>Review flagged transactions weekly</li>
+        <li>Update risk scoring thresholds periodically</li>
+        <li>Maintain current fraud prevention measures</li>
+        </ul>
+        """
+    else:
+        recommendation_text = """
+        The fraud rate is low. Continue with:
+        <ul>
+        <li>Regular monitoring and reporting</li>
+        <li>Periodic model updates</li>
+        <li>Maintain current fraud prevention measures</li>
+        <li>Conduct periodic security audits</li>
+        </ul>
+        """
+
+    story.append(Paragraph(recommendation_text, normal_style))
 
     # Footer
     story.append(Spacer(1, 30))
-    footer = Paragraph(
-        "This report was automatically generated by the Financial Fraud Detection System.",
-        normal_style
-    )
-    story.append(footer)
+    story.append(Paragraph(
+        "This report was automatically generated by the Financial Fraud Detection System.", normal_style))
 
     # Build PDF
     doc.build(story)
@@ -237,22 +373,12 @@ def generate_pdf_report(stats: dict, output_path: str) -> str:
 
 
 def generate_csv_report(stats: dict, output_path: str) -> str:
-    """
-    Generate a CSV report.
-
-    Args:
-        stats (dict): Statistics to include in the report
-        output_path (str): Path to save the CSV report
-
-    Returns:
-        str: Path to the generated report
-    """
+    """Generate a CSV report."""
     logger.info(f"Generating CSV report: {output_path}")
 
     with open(output_path, 'w', newline='') as csvfile:
         writer = csv.writer(csvfile)
 
-        # Title
         writer.writerow(["Financial Fraud Detection Report"])
         writer.writerow(
             [f"Generated on: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"])
@@ -260,7 +386,7 @@ def generate_csv_report(stats: dict, output_path: str) -> str:
 
         # Fraud Statistics
         writer.writerow(["Fraud Statistics"])
-        fraud_analysis = stats.get("fraud_analysis", {})
+        fraud_analysis = stats.get("fraud_analysis", stats)
 
         writer.writerow(["Metric", "Value"])
         writer.writerow(
@@ -274,10 +400,9 @@ def generate_csv_report(stats: dict, output_path: str) -> str:
         writer.writerow([])
 
         # Risk Scores
-        if "risk_scores" in fraud_analysis:
+        risk_scores = fraud_analysis.get("risk_scores", {})
+        if risk_scores:
             writer.writerow(["Risk Score Analysis"])
-            risk_scores = fraud_analysis["risk_scores"]
-
             writer.writerow(["Metric", "Value"])
             writer.writerow(
                 ["Average Risk Score", risk_scores.get("average_risk_score", 0)])
@@ -287,62 +412,44 @@ def generate_csv_report(stats: dict, output_path: str) -> str:
                 ["Max Risk Score", risk_scores.get("max_risk_score", 0)])
             writer.writerow([])
 
-            # Risk Distribution
-            if "risk_distribution" in risk_scores:
+            risk_dist = risk_scores.get("risk_distribution", {})
+            if risk_dist:
                 writer.writerow(["Risk Level Distribution"])
                 writer.writerow(["Risk Level", "Count"])
-                for level, count in risk_scores["risk_distribution"].items():
+                for level, count in risk_dist.items():
                     writer.writerow([level, count])
                 writer.writerow([])
 
         # Detailed Statistics
-        if "detailed_statistics" in fraud_analysis:
+        detailed = fraud_analysis.get("detailed_statistics", {})
+        if detailed:
             writer.writerow(["Detailed Statistics"])
-            detailed = fraud_analysis["detailed_statistics"]
-
             if "fraud_amount" in detailed:
-                writer.writerow(["Fraud Transaction Amounts"])
-                fraud_amount = detailed["fraud_amount"]
+                writer.writerow(["Fraud Amount"])
                 writer.writerow(["Metric", "Value"])
-                writer.writerow(["Average", fraud_amount.get("average", 0)])
-                writer.writerow(["Total", fraud_amount.get("total", 0)])
-                writer.writerow(["Min", fraud_amount.get("min", 0)])
-                writer.writerow(["Max", fraud_amount.get("max", 0)])
+                for key, val in detailed["fraud_amount"].items():
+                    writer.writerow([key, val])
 
     logger.info(f"CSV report generated successfully: {output_path}")
     return output_path
 
 
 def generate_txt_report(stats: dict, output_path: str) -> str:
-    """
-    Generate a plain text report.
-
-    Args:
-        stats (dict): Statistics to include in the report
-        output_path (str): Path to save the TXT report
-
-    Returns:
-        str: Path to the generated report
-    """
+    """Generate a plain text report."""
     logger.info(f"Generating TXT report: {output_path}")
 
     with open(output_path, 'w') as txtfile:
-        # Title
         txtfile.write("=" * 60 + "\n")
         txtfile.write("    FINANCIAL FRAUD DETECTION REPORT\n")
         txtfile.write("=" * 60 + "\n\n")
-
-        # Date
         txtfile.write(
             f"Generated on: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
 
-        # Fraud Statistics
+        fraud_analysis = stats.get("fraud_analysis", stats)
+
         txtfile.write("-" * 60 + "\n")
         txtfile.write("FRAUD STATISTICS\n")
         txtfile.write("-" * 60 + "\n")
-
-        fraud_analysis = stats.get("fraud_analysis", {})
-
         txtfile.write(
             f"Total Transactions:        {fraud_analysis.get('total_transactions', 0):,}\n")
         txtfile.write(
@@ -352,14 +459,11 @@ def generate_txt_report(stats: dict, output_path: str) -> str:
         txtfile.write(
             f"Fraud Percentage:         {fraud_analysis.get('fraud_percentage', 0):.2f}%\n\n")
 
-        # Risk Scores
-        if "risk_scores" in fraud_analysis:
+        risk_scores = fraud_analysis.get("risk_scores", {})
+        if risk_scores:
             txtfile.write("-" * 60 + "\n")
             txtfile.write("RISK SCORE ANALYSIS\n")
             txtfile.write("-" * 60 + "\n")
-
-            risk_scores = fraud_analysis["risk_scores"]
-
             txtfile.write(
                 f"Average Risk Score:      {risk_scores.get('average_risk_score', 0):.2f}\n")
             txtfile.write(
@@ -367,34 +471,24 @@ def generate_txt_report(stats: dict, output_path: str) -> str:
             txtfile.write(
                 f"Max Risk Score:          {risk_scores.get('max_risk_score', 0):.2f}\n\n")
 
-            # Risk Distribution
-            if "risk_distribution" in risk_scores:
+            risk_dist = risk_scores.get("risk_distribution", {})
+            if risk_dist:
                 txtfile.write("Risk Level Distribution:\n")
-                for level, count in risk_scores["risk_distribution"].items():
+                for level, count in risk_dist.items():
                     txtfile.write(f"  {level:10s}: {count:,}\n")
                 txtfile.write("\n")
 
-        # Detailed Statistics
-        if "detailed_statistics" in fraud_analysis:
+        detailed = fraud_analysis.get("detailed_statistics", {})
+        if detailed:
             txtfile.write("-" * 60 + "\n")
             txtfile.write("DETAILED STATISTICS\n")
             txtfile.write("-" * 60 + "\n")
-
-            detailed = fraud_analysis["detailed_statistics"]
-
             if "fraud_amount" in detailed:
                 txtfile.write("Fraud Transaction Amounts:\n")
-                fraud_amount = detailed["fraud_amount"]
-                txtfile.write(
-                    f"  Average: ${fraud_amount.get('average', 0):,.2f}\n")
-                txtfile.write(
-                    f"  Total:   ${fraud_amount.get('total', 0):,.2f}\n")
-                txtfile.write(
-                    f"  Min:     ${fraud_amount.get('min', 0):,.2f}\n")
-                txtfile.write(
-                    f"  Max:     ${fraud_amount.get('max', 0):,.2f}\n\n")
+                for key, val in detailed["fraud_amount"].items():
+                    txtfile.write(f"  {key}: ${val:,.2f}\n")
+                txtfile.write("\n")
 
-        # Footer
         txtfile.write("=" * 60 + "\n")
         txtfile.write("This report was automatically generated by the\n")
         txtfile.write("Financial Fraud Detection System.\n")
@@ -405,12 +499,7 @@ def generate_txt_report(stats: dict, output_path: str) -> str:
 
 
 def get_available_reports() -> List[dict]:
-    """
-    Get list of available reports in the reports directory.
-
-    Returns:
-        List[dict]: List of reports with metadata
-    """
+    """Get list of available reports in the reports directory."""
     reports = []
 
     if os.path.exists(REPORTS_DIR):

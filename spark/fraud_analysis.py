@@ -31,10 +31,14 @@ def analyze_fraud(df: DataFrame) -> dict:
 
     # Run all analysis components
     stats = fraud_statistics(df)
-    risk_scores = calculate_risk_scores(df)
-    risk_distribution = get_risk_distribution(df)
-    detailed_stats = get_detailed_statistics(df)
-    top_risky = get_top_risky_transactions(df, n=10)
+
+    # Calculate risk scores and get the DataFrame with risk scores
+    risk_scores, df_with_risk = calculate_risk_scores(df)
+
+    # Use df_with_risk for functions that need the risk_score column
+    risk_distribution = get_risk_distribution(df_with_risk)
+    detailed_stats = get_detailed_statistics(df_with_risk)
+    top_risky = get_top_risky_transactions(df_with_risk, n=10)
 
     results = {
         **stats,
@@ -81,7 +85,7 @@ def fraud_statistics(df: DataFrame) -> dict:
     return stats
 
 
-def calculate_risk_scores(df: DataFrame) -> dict:
+def calculate_risk_scores(df: DataFrame) -> tuple:
     """
     Calculate risk scores for each transaction based on multiple factors.
     Risk score ranges from 0 (low risk) to 100 (high risk).
@@ -90,7 +94,7 @@ def calculate_risk_scores(df: DataFrame) -> dict:
         df (DataFrame): Input DataFrame
 
     Returns:
-        dict: Risk score statistics
+        tuple: (dict: Risk score statistics, DataFrame: DataFrame with risk_score column)
     """
     logger.info("Calculating risk scores")
 
@@ -137,7 +141,7 @@ def calculate_risk_scores(df: DataFrame) -> dict:
     }
 
     logger.info(f"Risk score statistics: {result}")
-    return result
+    return result, df_with_risk
 
 
 def calculate_base_risk(amount_col, time_col):
