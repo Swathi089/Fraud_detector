@@ -11,6 +11,7 @@ A professional, production-ready web application for detecting financial fraud u
 - **📊 Dataset Overview** - View rows, columns, types, and data preview
 - **🔍 Data Quality Report** - Analyze missing values, duplicates, and invalid data
 - **📈 Statistical Summary** - Comprehensive statistics with visualizations
+- **🧮 Range Summary** - Overview of numeric column ranges and distribution statistics
 - **🛡️ Fraud Distribution** - Visual analysis of fraud vs legitimate transactions
 - **📊 Risk Percentiles** - View risk scores at 90th, 95th, and 99th percentiles
 - **📋 Rule-Based Detection** - Detect fraud using predefined rules
@@ -115,6 +116,8 @@ Use the sidebar to navigate between:
 - **Dataset Overview** - View data structure
 - **Data Quality** - Check data quality
 - **Statistics** - Detailed statistics
+- **Statistical Summary** - Dataset statistics and visualizations
+- **Range Summary** - Numeric distribution and range overview
 - **Fraud Distribution** - Fraud vs legitimate analysis
 - **Risk Percentiles** - Risk score percentiles
 - **Rule-Based** - Rule-based detection
